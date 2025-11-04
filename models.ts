@@ -1,25 +1,7 @@
-export type Tags =
-  | "electronic" // Electronics
-  | "phone"
-  | "laptop"
-  | "desktop"
-  | "tablet"
-  | "accessory" // Accessories
-  | "phone case"
-  | "tablet case"
-  | "laptop bag"
-  | "bag"
-  | "screen protector"
-  | "charger"
-  | "grocery" // Groceries
-  | "fruit"
-  | "bulk"
-  | "can";
-
 export type Product = {
   id: number;
   name: string;
-  tags: Tags[];
+  tags: string[];
   price: number;
   quantity: number;
   popularity: number;

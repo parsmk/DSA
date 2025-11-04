@@ -12,10 +12,9 @@ export class ProductGraph {
   // Could add more heuristics here like PurchaseHistory too. Would have to loop through everything anyways
   private heuristicMethods(a: Product, b: Product) {
     const sharedTags = a.tags.filter((t) => b.tags.includes(t)).length;
+    const popularityScore = 1 + (4 / a.popularity);
 
-    const popularityScore = ();
-
-    return sharedTags * popularityScore;
+    return sharedTags + popularityScore;
   }
 
   private ensureNode(id: number) {
@@ -34,29 +33,25 @@ export class ProductGraph {
     this.ensureNode(newProduct.id);
     // O(dn) where d = number of tags. Though this scales it scales at a much reduced rate.
     for (const product of Object.values(products)) {
-      const weight = this.heuristicMethods(product);
+      const weight = this.heuristicMethods(newProduct, product);
       if (weight === 0) continue;
 
       this.ensureNode(product.id).insert([newProduct.id, weight]);
     }
   }
 
-  update(product: Product) {
-    let node = this._graph[product.id];
+  update(prod: Product) {
+    for (const product of Object.values(products)) {
+      const weight = this.heuristicMethods(prod, product);
+      if (weight === 0) continue;
 
-    for (let [edge, weight] of node.getHeap()) {
-      const projectWeight = this.heuristicMethods(product);
-      if (weight === projectWeight) continue;
-      this.update(products[edge]);
+      this.ensureNode(prod.id).insert([product.id, weight]);
     }
   }
 
   del(id: number) {
     let node = this._graph[id];
-
-    for (const edge of node.getHeap()) this._graph[edge[0]].delete(edge);
-
-    delete products[id];
+    for (const edge of node.getHeap()) this._graph[edge[0]].del(edge);
     delete this._graph[id];
   }
 
@@ -127,9 +122,8 @@ export class Heap<T> {
     }
   }
 
-  delete(key: T): boolean {
-    const targetKey = this.keyFn(key);
-    const index = this.heap.findIndex((item) => this.keyFn(item) === targetKey);
+  del(key: T): boolean {
+    const index = this.heap.findIndex((item) => this.keyFn(item) === this.keyFn(key));
     if (index === -1) return false;
 
     const last = this.heap.pop();
@@ -142,13 +136,39 @@ export class Heap<T> {
     return true;
   }
 
+  update(key: T, oldKey: T): boolean {
+    this.del(oldKey)
+    this.insert(key)
+
+    return true;
+  }
+
   find(key: T): T {
     const node = this.heap.find((item) => this.keyFn(item) === this.keyFn(key));
     if (!node) throw new Error("Heapkey not found!");
     return node;
   }
 
-  extractMax(): T | null {
+  getNodesToDepth(depth: number, currDepth = 0, index = 0, output: T[] = []) {
+    const left = 2 * index + 1;
+    const right = 2 * index + 2;
+
+    if (index >= this.heap.length || currDepth === depth) return output;
+
+    output.push(this.heap[left]);
+    output.push(this.heap[right]);
+
+    this.getNodesToDepth(depth, currDepth + 1, left, output);
+    this.getNodesToDepth(depth, currDepth + 1, right, output);
+
+    if (currDepth === 0) {
+      output.sort((a, b) => b[1] - a[1]);
+    }
+
+    return output;
+  }
+
+  extract(): T | null {
     if (this.heap.length === 0) return null;
     if (this.heap.length === 1) return this.heap.pop() ?? null;
 
