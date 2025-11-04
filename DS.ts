@@ -45,13 +45,26 @@ export class ProductGraph {
       const weight = this.heuristicMethods(prod, product);
       if (weight === 0) continue;
 
+      this.del(prod.id);
       this.ensureNode(prod.id).insert([product.id, weight]);
     }
   }
 
   del(id: number) {
-    let node = this._graph[id];
-    for (const edge of node.getHeap()) this._graph[edge[0]].del(edge);
+    const node = this._graph[id];
+    if (!node) return;
+
+    for (const [edgeId, _] of node.getHeap()) {
+      const neighbor = this._graph[edgeId];
+      if (neighbor) {
+        neighbor.getHeap().findIndex(e => e[0] === id);
+        for (const e of neighbor.getHeap()) {
+          if (e[0] !== id) continue;
+          neighbor.del(e);
+        }
+      }
+    }
+
     delete this._graph[id];
   }
 
